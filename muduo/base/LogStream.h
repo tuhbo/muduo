@@ -138,4 +138,22 @@ class LogStream : noncopyable {
         static const int KMaxNumericSize;
 };
 
+class Fmt {
+    public:
+        template<typename T>
+        Fmt(const char* fmt, T val);
+
+        const char* data() const { return buf_; }
+        int length() const { return length_; }
+
+    private:
+        char buf_[32];
+        int length_;
+};
+
+inline LogStream& operator<<(LogStream& s, const Fmt& fmt) {
+    s.append(fmt.data(), fmt.length());
+    return s;
+}
+
 #endif

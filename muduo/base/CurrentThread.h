@@ -10,8 +10,11 @@
 
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <stdio.h>
 
 extern __thread int t_cachedTid;
+extern __thread char t_tidString[32];
+extern __thread int t_tidStringLength;
 
 void cacheTid();
 
@@ -21,4 +24,8 @@ inline int tid() {
     }
     return t_cachedTid;
 }
+
+const char *tidString();
+
+int tidStringLength();
 #endif
