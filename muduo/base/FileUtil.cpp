@@ -38,10 +38,10 @@ void AppendFile::append(const char *logline, size_t len) {
                 fprintf(stderr, "AppendFile::append() failed %s\n", strerror_tl(err));
                 break;
             }
-            written += n;
         }
-        writtenBytes_ += written;
+        written += n;
     }
+    writtenBytes_ += written;
 }
 
 void AppendFile::flush() {

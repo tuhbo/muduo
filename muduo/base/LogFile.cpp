@@ -69,11 +69,10 @@ void LogFile::append_unlocked(const char* logline, int len) {
     }
 }
 
-bool LogFile::rollFile()
-{
+bool LogFile::rollFile() {
     time_t now = 0;
     string filename = getLogFileName(basename_, &now);
-    time_t start = now / kRollPerSeconds_ * kRollPerSeconds_;
+    time_t start = now / kRollPerSeconds_ * kRollPerSeconds_; //调整时间至当天零点
 
     if (now > lastRoll_) {
         lastRoll_ = now;
@@ -96,8 +95,7 @@ static string hostname() {
         return "unknownhost";
     }
 }
-string LogFile::getLogFileName(const string& basename, time_t* now)
-{
+string LogFile::getLogFileName(const string& basename, time_t* now) {
     string filename;
     filename.reserve(basename.size() + 64);
     filename = basename;

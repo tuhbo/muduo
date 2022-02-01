@@ -32,17 +32,17 @@ class LogFile : noncopyable {
         void append_unlocked(const char *logline, int len);
         static string getLogFileName(const string& basename, time_t* now);
 
-        const string basename_;
-        const off_t rollSize_;
-        const int flushInterval_;
-        const int checkEveryN_;
+        const string basename_; //日志文件的basename
+        const off_t rollSize_; // 日志文件的大小达到rollSize_就换一个新文件
+        const int flushInterval_; //日志写入间隔时间
+        const int checkEveryN_; //当count >= checkEveryN_时，检查一下滚动的条件
 
         int count_;
 
         std::unique_ptr<std::mutex> mutex_;
-        time_t startOfPeriod_;
-        time_t lastRoll_;
-        time_t lastFlush_;
+        time_t startOfPeriod_; //开始记录日志时间
+        time_t lastRoll_; //上一次滚动日志文件时间
+        time_t lastFlush_; // 上一次日志写入文件时间
         std::unique_ptr<AppendFile> file_;
 
         const static int kRollPerSeconds_ = 60*60*24;
