@@ -10,23 +10,19 @@
 #include <sys/timerfd.h>
 
 
-int createTimerfd()
-{
+int createTimerfd() {
   int timerfd = ::timerfd_create(CLOCK_MONOTONIC,
-                                 TFD_NONBLOCK | TFD_CLOEXEC);
-  if (timerfd < 0)
-  {
+                                  TFD_NONBLOCK | TFD_CLOEXEC);
+  if (timerfd < 0) {
     LOG_SYSFATAL << "Failed in timerfd_create";
   }
   return timerfd;
 }
 
-struct timespec howMuchTimeFromNow(Timestamp when)
-{
+struct timespec howMuchTimeFromNow(Timestamp when) {
   int64_t microseconds = when.microSecondsSinceEpoch()
                          - Timestamp::now().microSecondsSinceEpoch();
-  if (microseconds < 100)
-  {
+  if (microseconds < 100) {
     microseconds = 100;
   }
   struct timespec ts;
@@ -37,19 +33,16 @@ struct timespec howMuchTimeFromNow(Timestamp when)
   return ts;
 }
 
-void readTimerfd(int timerfd, Timestamp now)
-{
+void readTimerfd(int timerfd, Timestamp now) {
   uint64_t howmany;
   ssize_t n = ::read(timerfd, &howmany, sizeof howmany);
   LOG_TRACE << "TimerQueue::handleRead() " << howmany << " at " << now.toString();
-  if (n != sizeof howmany)
-  {
+  if (n != sizeof howmany) {
     LOG_ERROR << "TimerQueue::handleRead() reads " << n << " bytes instead of 8";
   }
 }
 
-void resetTimerfd(int timerfd, Timestamp expiration)
-{
+void resetTimerfd(int timerfd, Timestamp expiration) {
   // wake up loop by timerfd_settime()
   struct itimerspec newValue;
   struct itimerspec oldValue;
@@ -57,8 +50,7 @@ void resetTimerfd(int timerfd, Timestamp expiration)
   bzero(&oldValue, sizeof oldValue);
   newValue.it_value = howMuchTimeFromNow(expiration);
   int ret = ::timerfd_settime(timerfd, 0, &newValue, &oldValue);
-  if (ret)
-  {
+  if (ret) {
     LOG_SYSERR << "timerfd_settime()";
   }
 }
@@ -74,8 +66,7 @@ TimerQueue::TimerQueue(EventLoop* loop)
   timerfdChannel_.enableReading();
 }
 
-TimerQueue::~TimerQueue()
-{
+TimerQueue::~TimerQueue() {
   ::close(timerfd_);
   // do not remove channel, since we're in EventLoop::dtor();
   for (TimerList::iterator it = timers_.begin();
@@ -90,14 +81,17 @@ TimerId TimerQueue::addTimer(const TimerCallback& cb,
                              double interval)
 {
   Timer* timer = new Timer(cb, when, interval);
+  loop_->runInLoop(std::bind(&TimerQueue::addTimerInLoop, this, timer));
+  return TimerId(timer);
+}
+
+void TimerQueue::addTimerInLoop(Timer *timer) {
   loop_->assertInLoopThread();
   bool earliestChanged = insert(timer);
 
-  if (earliestChanged)
-  {
+  if (earliestChanged) {
     resetTimerfd(timerfd_, timer->expiration());
   }
-  return TimerId(timer);
 }
 
 void TimerQueue::handleRead()

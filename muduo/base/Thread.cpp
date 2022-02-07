@@ -23,27 +23,27 @@ Thread::Thread(ThreadFunc func, const std::string &name)
 
 Thread::~Thread() {
     if (started_ && !joined_) {
-        thread_->detach();
+        thread_.detach();
     }
 }
 
 void Thread::start() {
     started_ = true;
-    thread_ = std::make_shared<std::thread>(
-        std::thread([&](){
+    thread_ = std::move(std::thread([&](){
             tid_ = ::tid();
             cond_.notify_one();
             func_();
-        })
-    );
+        }));
 
     std::unique_lock<std::mutex> lk(mutex_);
-    cond_.wait(lk, [&](){ return tid_ != 0; });
+    while (tid_ == 0) {
+        cond_.wait(lk);
+    }
 }
 
 void Thread::join() {
     joined_ = true;
-    thread_->join();
+    thread_.join();
 }
 
 void Thread::setDefaultName() {
