@@ -8,6 +8,7 @@
 #include "muduo/base/Logging.h"
 #include "muduo/net/Poller.h"
 #include "muduo/net/Channel.h"
+#include "muduo/net/TimerQueue.h"
 #include <poll.h>
 
 __thread EventLoop *t_loopInthisThread = 0;
@@ -17,7 +18,8 @@ EventLoop::EventLoop()
     : looping_(false),
     quit_(false),
     threadId_(::tid()),
-    poller_(new Poller(this))
+    poller_(new Poller(this)),
+    timerQueue_(new TimerQueue(this))
 {
     LOG_TRACE << "EventLoop created " << this << " in thread " << threadId_;
     if (t_loopInthisThread) {
@@ -41,7 +43,7 @@ void EventLoop::loop() {
 
     while (!quit_) {
         activeChannels_.clear();
-        poller_->poll(kPollTimeMs, &activeChannels_);
+        pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
         for (ChannelList::iterator it = activeChannels_.begin();
             it != activeChannels_.end(); ++it)
         {
@@ -55,6 +57,20 @@ void EventLoop::loop() {
 
 void EventLoop::quit() {
     quit_ = false;
+}
+
+TimerId EventLoop::runAt(const Timestamp& time, const TimerCallback& cb) {
+    return timerQueue_->addTimer(cb, time, 0.0);
+}
+
+TimerId EventLoop::runAfter(double delay, const TimerCallback& cb) {
+    Timestamp time(addTime(Timestamp::now(), delay));
+    return runAt(time, cb);
+}
+
+TimerId EventLoop::runEvery(double interval, const TimerCallback& cb) {
+    Timestamp time(addTime(Timestamp::now(), interval));
+    return timerQueue_->addTimer(cb, time, interval);
 }
 
 void EventLoop::updateChannel(Channel *channel) {

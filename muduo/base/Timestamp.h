@@ -36,6 +36,18 @@ class Timestamp {
             return static_cast<time_t>(microSecondsSinceEpoch_ / kMicroSecondsPerSecond);
         }
 
+        bool operator<(const Timestamp &rhs) const{
+            return microSecondsSinceEpoch_ < rhs.microSecondsSinceEpoch_;
+        }
+
+        bool operator==(const Timestamp &rhs) const {
+            return microSecondsSinceEpoch_ == rhs.microSecondsSinceEpoch_;
+        }
+
+        bool operator>(const Timestamp &rhs) const {
+            return microSecondsSinceEpoch_ > rhs.microSecondsSinceEpoch_;
+        }
+
         static Timestamp now();
 
         static Timestamp invalid() {
@@ -54,14 +66,6 @@ class Timestamp {
     private:
         int64_t microSecondsSinceEpoch_;
 };
-
-inline bool operator<(Timestamp lhs, Timestamp rhs) {
-  return lhs.microSecondsSinceEpoch() < rhs.microSecondsSinceEpoch();
-}
-
-inline bool operator==(Timestamp lhs, Timestamp rhs) {
-  return lhs.microSecondsSinceEpoch() == rhs.microSecondsSinceEpoch();
-}
 
 /**
  * @brief Gets time difference of two timestamps, result in seconds

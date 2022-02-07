@@ -9,6 +9,8 @@ set(net_SRCS
   EventLoop.cpp
   Channel.cpp
   Poller.cpp
+  Timer.cpp
+  TimerQueue.cpp
 )
 
 add_library(muduo_net ${net_SRCS})
@@ -21,6 +23,10 @@ set(HEADERS
   EventLoop.h
   Channel.h
   Poller.h
+  Callbacks.h
+  Timer.h
+  TimerId.h
+  TimerQueue.h
   )
 install(FILES ${HEADERS} DESTINATION include/muduo/net)
 
