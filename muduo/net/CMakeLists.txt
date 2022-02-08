@@ -12,6 +12,10 @@ set(net_SRCS
   Timer.cpp
   TimerQueue.cpp
   EventLoopThread.cpp
+  InetAddress.cpp
+  SocketsOps.cpp
+  Socket.cpp
+  Acceptor.cpp
 )
 
 add_library(muduo_net ${net_SRCS})
@@ -29,6 +33,10 @@ set(HEADERS
   TimerId.h
   TimerQueue.h
   EventLoopThread.h
+  InetAddress.h
+  Socket.h
+  SocketOps.h
+  Acceptor.h
   )
 install(FILES ${HEADERS} DESTINATION include/muduo/net)
 

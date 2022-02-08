@@ -9,3 +9,6 @@ target_link_libraries(runInLoop_test muduo_net)
 
 add_executable(eventloopthread_unittest EventLoopThread_unittest.cpp)
 target_link_libraries(eventloopthread_unittest muduo_net)
+
+add_executable(acceptor_test Acceptor_test.cpp)
+target_link_libraries(acceptor_test muduo_net)
