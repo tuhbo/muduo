@@ -7,16 +7,19 @@
 #ifndef NET_CALLBACKS_H
 #define NET_CALLBACKS_H
 
+#include "muduo/base/Timestamp.h"
 #include <functional>
 #include <memory>
 
+class Buffer;
 class TcpConnection;
 typedef std::shared_ptr<TcpConnection> TcpConnectionPtr;
 typedef std::function<void()> TimerCallback;
 
 typedef std::function<void (const TcpConnectionPtr &)> ConnectionCallback;
 typedef std::function<void (const TcpConnectionPtr &,
-                            const char *data, ssize_t len)> MessageCallback;
+                            Buffer *buf,
+                            Timestamp )> MessageCallback;
 
 typedef std::function<void (const TcpConnectionPtr &)> CloseCallback;
 #endif

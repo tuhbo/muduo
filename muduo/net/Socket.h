@@ -29,6 +29,8 @@ class Socket : noncopyable {
         int accept(InetAddress *peeraddr);
 
         void setReuseAddr(bool on);
+
+        void shutdownWrite();
     private:
         const int sockfd_;
 };

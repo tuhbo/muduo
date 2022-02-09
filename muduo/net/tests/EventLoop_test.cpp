@@ -7,7 +7,7 @@
 
 EventLoop* g_loop;
 
-void timeout()
+void timeout(Timestamp receiveTime)
 {
   printf("Timeout!\n");
   g_loop->quit();

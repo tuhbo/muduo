@@ -1,3 +1,9 @@
+/*
+ * @Description: 
+ * @Version: 1.0
+ * @Autor: tuhbo
+ * @Date: 2022-02-09 20:15:15
+ */
 #ifndef BASE_TIMESTAMP_H
 #define BASE_TIMESTAMP_H
 
@@ -22,7 +28,7 @@ class Timestamp {
 
         string toString() const;
 
-        string toFormattedString(bool showMicroseconds) const;
+        string toFormattedString(bool showMicroseconds = false) const;
 
         int64_t microSecondsSinceEpoch() const {
             return microSecondsSinceEpoch_;

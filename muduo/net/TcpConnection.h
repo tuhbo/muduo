@@ -10,6 +10,8 @@
 #include "muduo/net/Callbacks.h"
 #include "muduo/net/InetAddress.h"
 #include "muduo/base/noncopyable.h"
+#include "muduo/net/Buffer.h"
+#include "muduo/base/Timestamp.h"
 
 #include <string>
 
@@ -39,6 +41,13 @@ class TcpConnection : noncopyable,
         const InetAddress& peerAddress() { return peerAddr_; }
         bool connected() const { return state_ == KConnected; }
 
+        // Thread safe
+        void send(const void *message, size_t len);
+        // Thread safe
+        void send(const std::string &message);
+        // Thread safe
+        void shutdown();
+
         void setConnectionCallback(const ConnectionCallback& cb) {
             connectionCallback_ = cb; 
         }
@@ -58,13 +67,15 @@ class TcpConnection : noncopyable,
         // called when TcpServer has removed me from its map
         void connectDestroyed();
     private:
-        enum StateE { KConnecting, KConnected, kDisconnected,};
+        enum StateE { KConnecting, KConnected, KDisconnected, KDisconnecting, };
 
         void setState(StateE s) { state_ = s; }
-        void handleRead();
+        void handleRead(Timestamp receiveTime);
         void handleWrite();
         void handleClose();
         void handleError();
+        void sendInLoop(const std::string &message);
+        void shutdownInLoop();
         
         EventLoop *loop_;
         std::string name_;
@@ -76,6 +87,8 @@ class TcpConnection : noncopyable,
         ConnectionCallback connectionCallback_;
         MessageCallback messageCallback_;
         CloseCallback closeCallback_;
+        Buffer inputBuffer_;
+        Buffer outputBuffer_;
 };
 
 #endif

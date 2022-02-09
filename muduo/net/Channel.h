@@ -8,6 +8,7 @@
 #define NET_CHANNEL_H
 
 #include "muduo/base/noncopyable.h"
+#include "muduo/base/Timestamp.h"
 #include <functional>
 class EventLoop;
 
@@ -20,13 +21,14 @@ class EventLoop;
 class Channel : noncopyable {
     public:
         typedef std::function<void()> EventCallback;
+        typedef std::function<void(Timestamp)> ReadEventCallback;
         Channel(EventLoop *loop, int fd);
 
         ~Channel();
 
-        void handleEvent();
+        void handleEvent(Timestamp receiveTime);
 
-        void setReadCallback(const EventCallback &cb) {
+        void setReadCallback(const ReadEventCallback &cb) {
             readCallback_ = std::move(cb);
         }
 
@@ -57,7 +59,8 @@ class Channel : noncopyable {
         void disableWriting() { events_ &= ~KWriteEvent; update(); }
 
         void disableAll() { events_ = KNoneEvent; update(); }
-
+        
+        bool isWriting() const { return events_ & KWriteEvent; }
         int index() { return index_; }
 
         void set_index(int idx) { index_ = idx; }
@@ -78,7 +81,7 @@ class Channel : noncopyable {
 
         bool eventHandling_;
 
-        EventCallback readCallback_;
+        ReadEventCallback readCallback_;
         EventCallback writeCallback_;
         EventCallback errorCallback_;
         EventCallback closeCallback_;

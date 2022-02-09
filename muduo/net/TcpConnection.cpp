@@ -31,7 +31,7 @@ TcpConnection::TcpConnection(EventLoop *loop,
     LOG_DEBUG << "TcpConnection::ctor[" << name_ << "] at " << this
                 << " fd=" << sockfd;
     channel_->setReadCallback(
-        std::bind(&TcpConnection::handleRead, this)
+        std::bind(&TcpConnection::handleRead, this, std::placeholders::_1)
     );
     channel_->setWriteCallback(
         std::bind(&TcpConnection::handleWrite, this)
@@ -60,8 +60,8 @@ void TcpConnection::connectEstablished() {
 
 void TcpConnection::connectDestroyed() {
     loop_->assertInLoopThread();
-    assert(state_ == KConnected);
-    setState(kDisconnected);
+    assert(state_ == KConnected || state_ == KDisconnecting);
+    setState(KDisconnected);
     channel_->disableAll();
 
     connectionCallback_(shared_from_this());
@@ -69,26 +69,103 @@ void TcpConnection::connectDestroyed() {
     loop_->removeChannel(channel_.get());
 }
 
-void TcpConnection::handleRead() {
-    char buf[65536];
-    ssize_t n = ::read(channel_->fd(), buf, sizeof buf);
+void TcpConnection::sendInLoop(const std::string &message) {
+    loop_->assertInLoopThread();
+    ssize_t nwrote = 0;
+    // if nothing in output queue, try writing directly
+    if (!channel_->isWriting() && outputBuffer_.readableBytes() == 0) {
+        nwrote = ::write(channel_->fd(), message.data(), message.size());
+        if (nwrote >= 0) {
+            if (static_cast<size_t>(nwrote) < message.size()) {
+                LOG_TRACE << "I am going to write more data";
+            }
+        } else {
+            nwrote = 0;
+            if (errno != EWOULDBLOCK) {
+                LOG_SYSERR << "TcpConnection::sendInLoop";
+            }
+        }
+    }
+    assert(nwrote >= 0);
+    if (static_cast<size_t>(nwrote) < message.size()) {
+        outputBuffer_.append(message.data() + nwrote, message.size() - nwrote);
+        if (!channel_->isWriting()) {
+            channel_->enableWriting();
+        }
+    }
+}
+
+void TcpConnection::send(const std::string &message) {
+    if (state_ == KConnected) {
+        if (loop_->isInLoopThread()) {
+            sendInLoop(message);
+        } else {
+            loop_->runInLoop(
+                std::bind(&TcpConnection::sendInLoop, this, message)
+            );
+        }
+    }
+}
+
+void TcpConnection::shutdown() {
+    if (state_ == KConnected) {
+        setState(KDisconnecting);
+        loop_->runInLoop(
+            std::bind(&TcpConnection::shutdownInLoop, this)
+        );
+    }
+}
+
+void TcpConnection::shutdownInLoop() {
+    loop_->assertInLoopThread();
+    if (!channel_->isWriting()) {
+        socket_->shutdownWrite();
+    }
+}
+
+void TcpConnection::handleRead(Timestamp receiveTime) {
+    int savedErrno = 0;
+    ssize_t n = inputBuffer_.readFd(channel_->fd(), &savedErrno);
     if (n > 0) {
-        messageCallback_(shared_from_this(), buf, n);
+        messageCallback_(shared_from_this(), &inputBuffer_, receiveTime);
     } else if (n == 0) {
         handleClose();
     } else {
+        errno = savedErrno;
+        LOG_SYSERR << "TcpConnection::handleRead";
         handleError();
     }
 }
 
 void TcpConnection::handleWrite() {
-
+    loop_->assertInLoopThread();
+    if (channel_->isWriting()) {
+        ssize_t n = ::write(channel_->fd(),
+                            outputBuffer_.peek(),
+                            outputBuffer_.readableBytes());
+        if (n > 0) {
+            outputBuffer_.retrieve(n);
+            if (outputBuffer_.readableBytes() == 0) {
+                channel_->disableWriting();
+                if (state_ == KDisconnecting) {
+                    shutdownInLoop();
+                }
+            } else {
+                LOG_TRACE << "I am going to write more data";
+            }
+        } else {
+            LOG_SYSERR << "TcpConnection::handleWrite";
+            abort();
+        }
+    } else {
+        LOG_TRACE << "Connection is down, no more writing";
+    }
 }
 
 void TcpConnection::handleClose() {
     loop_->assertInLoopThread();
     LOG_TRACE << "TcpConnection::handleClose state = " << state_;
-    assert(state_ == kConnected);
+    assert(state_ == KConnected || state_ == KDisconnecting);
     // we don't close fd, leave it to dtor, so we can find leaks easily.
     channel_->disableAll();
     // must be the last line
