@@ -12,3 +12,6 @@ target_link_libraries(eventloopthread_unittest muduo_net)
 
 add_executable(acceptor_test Acceptor_test.cpp)
 target_link_libraries(acceptor_test muduo_net)
+
+add_executable(tcpserver_test TcpServer_test.cpp)
+target_link_libraries(tcpserver_test muduo_net)

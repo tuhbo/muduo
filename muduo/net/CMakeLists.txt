@@ -16,6 +16,8 @@ set(net_SRCS
   SocketsOps.cpp
   Socket.cpp
   Acceptor.cpp
+  TcpServer.cpp
+  TcpConnection.cpp
 )
 
 add_library(muduo_net ${net_SRCS})
@@ -37,6 +39,8 @@ set(HEADERS
   Socket.h
   SocketOps.h
   Acceptor.h
+  TcpServer.h
+  TcpConnection.h
   )
 install(FILES ${HEADERS} DESTINATION include/muduo/net)
 
