@@ -31,6 +31,10 @@ class Socket : noncopyable {
         void setReuseAddr(bool on);
 
         void shutdownWrite();
+
+        // Enable/disable TCP_NODELAY (disable/enable Nagle algorithm)
+        void setTcpNoDelay(bool on);
+        
     private:
         const int sockfd_;
 };

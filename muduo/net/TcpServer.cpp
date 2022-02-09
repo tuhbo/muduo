@@ -10,6 +10,7 @@
 #include "muduo/net/SocketsOps.h"
 #include "muduo/net/TcpServer.h"
 #include "muduo/net/TcpConnection.h"
+#include "muduo/net/EventLoopThreadPool.h"
 
 #include <functional>
 #include <stdio.h>
@@ -18,6 +19,7 @@ TcpServer::TcpServer(EventLoop *loop, const InetAddress &listenAddr)
     : loop_(CHECK_NOTNULL(loop)),
     name_(listenAddr.toHostPort()),
     acceptor_(new Acceptor(loop, listenAddr)),
+    threadPool_(new EventLoopThreadPool(loop)),
     started_(false),
     nextConnId_(1)
 {
@@ -28,9 +30,14 @@ TcpServer::TcpServer(EventLoop *loop, const InetAddress &listenAddr)
 
 TcpServer::~TcpServer() {}
 
+void TcpServer::setThreadNum(int numThreads) {
+    assert(numThreads >= 0);
+    threadPool_->setThreadNum(numThreads);
+}
 void TcpServer::start() {
     if (!started_) {
         started_ = true;
+        threadPool_->start();
     }
     if (!acceptor_->listenning()) {
         loop_->runInLoop(
@@ -50,25 +57,34 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
             << "] - new Connection [" << connName
             << "] from " << peerAddr.toHostPort();
     InetAddress localAddr(sockets::getLocalAddr(sockfd));
+    EventLoop *ioLoop = threadPool_->getNextLoop();
     TcpConnectionPtr conn(
-        new TcpConnection(loop_, connName, sockfd, localAddr, peerAddr));
+        new TcpConnection(ioLoop, connName, sockfd, localAddr, peerAddr));
     connections_[connName] = conn;
     conn->setConnectionCallback(connectionCallback_);
     conn->setMessageCallback(messageCallback_);
+    conn->setWriteCompleteCallback(writeCompleteCallback_);
     //设置了如何关闭链接的回调
     conn->setCloseCallback(
         std::bind(&TcpServer::removeConnection, this, std::placeholders::_1)
     );
-    conn->connectEstablished();
+    ioLoop->runInLoop(std::bind(&TcpConnection::connectEstablished, conn));
 }
 
 void TcpServer::removeConnection(const TcpConnectionPtr &conn) {
+    loop_->runInLoop(
+        std::bind(&TcpServer::removeConnectionInLoop, this, conn)
+    );
+}
+
+void TcpServer::removeConnectionInLoop(const TcpConnectionPtr &conn) {
     loop_->assertInLoopThread();
-    LOG_INFO << "TcpServer::removeConnection [" << name_
+    LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
             << "] - connection " << conn->name();
     size_t n = connections_.erase(conn->name());
     assert(n == 1); (void)n;
-    loop_->queueInLoop(
+    EventLoop *ioLoop = conn->getLoop();
+    ioLoop->queueInLoop(
         std::bind(&TcpConnection::connectDestroyed, conn)
     );
 }

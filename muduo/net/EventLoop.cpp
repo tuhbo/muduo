@@ -10,8 +10,8 @@
 #include "muduo/net/Channel.h"
 #include "muduo/net/TimerQueue.h"
 #include <poll.h>
+#include <signal.h>
 #include <sys/eventfd.h>
-#include <iostream>
 
 __thread EventLoop *t_loopInthisThread = 0;
 const int kPollTimeMs = 10000;
@@ -24,6 +24,15 @@ static int createEventfd() {
     }
     return evtfd;
 }
+
+class IgnoreSigPipe {
+    public:
+        IgnoreSigPipe() {
+            ::signal(SIGPIPE, SIG_IGN);
+        }
+};
+
+IgnoreSigPipe initObj;
 
 EventLoop::EventLoop()
     : looping_(false),

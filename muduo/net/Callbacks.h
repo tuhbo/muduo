@@ -22,4 +22,5 @@ typedef std::function<void (const TcpConnectionPtr &,
                             Timestamp )> MessageCallback;
 
 typedef std::function<void (const TcpConnectionPtr &)> CloseCallback;
+typedef std::function<void (const TcpConnectionPtr&)> WriteCompleteCallback;
 #endif

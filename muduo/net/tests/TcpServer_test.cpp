@@ -12,7 +12,7 @@
 
 std::string message1;
 std::string message2;
-
+int sleepSeconds = 0;
 void onConnection(const TcpConnectionPtr& conn)
 {
   if (conn->connected())

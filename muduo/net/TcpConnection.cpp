@@ -78,6 +78,10 @@ void TcpConnection::sendInLoop(const std::string &message) {
         if (nwrote >= 0) {
             if (static_cast<size_t>(nwrote) < message.size()) {
                 LOG_TRACE << "I am going to write more data";
+            } else if (writeCompleteCallback_) {
+                loop_->queueInLoop(
+                    std::bind(writeCompleteCallback_, shared_from_this())
+                );
             }
         } else {
             nwrote = 0;
@@ -123,6 +127,10 @@ void TcpConnection::shutdownInLoop() {
     }
 }
 
+void TcpConnection::setTcpNoDelay(bool on) {
+    socket_->setTcpNoDelay(on);
+}
+
 void TcpConnection::handleRead(Timestamp receiveTime) {
     int savedErrno = 0;
     ssize_t n = inputBuffer_.readFd(channel_->fd(), &savedErrno);
@@ -147,6 +155,11 @@ void TcpConnection::handleWrite() {
             outputBuffer_.retrieve(n);
             if (outputBuffer_.readableBytes() == 0) {
                 channel_->disableWriting();
+                if (writeCompleteCallback_) {
+                    loop_->queueInLoop(
+                        std::bind(writeCompleteCallback_, shared_from_this())
+                    );
+                }
                 if (state_ == KDisconnecting) {
                     shutdownInLoop();
                 }
