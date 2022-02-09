@@ -47,14 +47,24 @@ class TcpConnection : noncopyable,
             messageCallback_ = cb; 
         }
 
+        void setCloseCallback(const CloseCallback &cb) {
+            closeCallback_ = cb;
+        }
+
         // Internal use only.
         // called when TcpServer accepts a new connection
         void connectEstablished();   // should be called only once
+        
+        // called when TcpServer has removed me from its map
+        void connectDestroyed();
     private:
-        enum StateE { KConnecting, KConnected,};
+        enum StateE { KConnecting, KConnected, kDisconnected,};
 
         void setState(StateE s) { state_ = s; }
         void handleRead();
+        void handleWrite();
+        void handleClose();
+        void handleError();
         
         EventLoop *loop_;
         std::string name_;
@@ -65,6 +75,7 @@ class TcpConnection : noncopyable,
         InetAddress peerAddr_;
         ConnectionCallback connectionCallback_;
         MessageCallback messageCallback_;
+        CloseCallback closeCallback_;
 };
 
 #endif

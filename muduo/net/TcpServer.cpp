@@ -55,5 +55,20 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
     connections_[connName] = conn;
     conn->setConnectionCallback(connectionCallback_);
     conn->setMessageCallback(messageCallback_);
+    //设置了如何关闭链接的回调
+    conn->setCloseCallback(
+        std::bind(&TcpServer::removeConnection, this, std::placeholders::_1)
+    );
     conn->connectEstablished();
+}
+
+void TcpServer::removeConnection(const TcpConnectionPtr &conn) {
+    loop_->assertInLoopThread();
+    LOG_INFO << "TcpServer::removeConnection [" << name_
+            << "] - connection " << conn->name();
+    size_t n = connections_.erase(conn->name());
+    assert(n == 1); (void)n;
+    loop_->queueInLoop(
+        std::bind(&TcpConnection::connectDestroyed, conn)
+    );
 }

@@ -40,7 +40,8 @@ class TcpServer : noncopyable {
         }
     private:
         void newConnection(int sockfd, const InetAddress &peerAddr);
-
+        void removeConnection(const TcpConnectionPtr &conn);
+        
         typedef std::unordered_map<std::string, TcpConnectionPtr> ConnectionMap;
 
         EventLoop *loop_; // the acceptor loop;

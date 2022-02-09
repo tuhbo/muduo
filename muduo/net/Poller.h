@@ -29,11 +29,13 @@ class Poller : noncopyable {
         Timestamp poll(int timeoutMs, ChannelList *activeChannel);
 
         /**
-         * @brief Changes the interested I/O events
-         * 
+         * @brief Changes the interested I/O events 
          * @param channel 
          */
         void updateChannel(Channel *channel);
+        
+        // Remove the channel, when it destructs
+        void removeChannel(Channel *channel);
 
         void assertInLoopThread() { ownerLoop_->assertInLoopThread(); }
     private:
