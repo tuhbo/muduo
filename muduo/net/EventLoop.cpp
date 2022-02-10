@@ -174,3 +174,7 @@ void EventLoop::doPendingFunctors() {
     }
     callingPendingFunctors_ = false;
 }
+
+void EventLoop::cancel(TimerId timerId) {
+    return timerQueue_->cancel(timerId);
+}
