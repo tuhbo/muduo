@@ -12,6 +12,11 @@
 #include <memory.h>
 #include <sys/uio.h>
 
+const char Buffer::kCRLF[] = "\r\n";
+
+const size_t Buffer::kCheapPrepend;
+const size_t Buffer::kInitialSize;
+
 ssize_t Buffer::readFd(int fd, int* savedErrno) {
     char extrabuf[65536];
     struct iovec vec[2];
